@@ -1,4 +1,6 @@
 import { assert } from 'chai';
+import fs from 'fs';
+import YAML from 'yamljs';
 import * as utils from '../lib/src/_utils';
 
 describe('_utils.js', () => {
@@ -29,7 +31,9 @@ describe('_utils.js', () => {
 
         it('Should return the same Array/Object', () => {
             const flatArray = [1, 2, 3];
+            const flatWordsArray = ['one', 'two', 'three'];
             assert.deepEqual(JSON.stringify(utils.convertStringToArray(flatArray)), JSON.stringify(flatArray), 'Given a flat Array');
+            assert.deepEqual(JSON.stringify(utils.convertStringToArray(flatWordsArray)), JSON.stringify(flatWordsArray), 'Given a flat Array');
 
             const deepArray = [[1, 2, 3], [4, 5, 6], 3];
             assert.deepEqual(JSON.stringify(utils.convertStringToArray(deepArray)), JSON.stringify(deepArray), 'Given a deep Array');
@@ -48,8 +52,8 @@ describe('_utils.js', () => {
             };
             assert.deepEqual(JSON.stringify(utils.convertStringToArray(deepObject)), JSON.stringify(Object.values(deepObject)), 'Given a deep Object');
 
-            assert.deepEqual(JSON.stringify(utils.convertStringToArray('1, 2, 3')), JSON.stringify([1, 2, 3]), 'Given a string with spaces');
-            assert.deepEqual(JSON.stringify(utils.convertStringToArray('1,2,3')), JSON.stringify([1, 2, 3]), 'Given a string without spaces');
+            assert.deepEqual(JSON.stringify(utils.convertStringToArray('1, 2, 3')), JSON.stringify(['1', '2', '3']), 'Given a string with spaces');
+            assert.deepEqual(JSON.stringify(utils.convertStringToArray('1,2,3')), JSON.stringify(['1', '2', '3']), 'Given a string without spaces');
         });
 
         it('Should replace the underscores with spaces', () => {
@@ -80,5 +84,89 @@ describe('_utils.js', () => {
             assert.deepEqual(utils.isInRange(2, 2, 5), true, 'Given same number as first range value');
             assert.deepEqual(utils.isInRange(5, 2, 5), false, 'Given same number as last range value');
         });
-    })
+    });
+
+    describe('requireConfig', () => {
+        const files = [
+            '.grenrc.yml',
+            '.grenrc.json',
+            '.grenrc.yaml',
+            '.grenrc.js',
+            '.grenrc'
+        ].map(file => `${process.cwd()}/test/.temp/${file}`);
+        const ymlFileContent = YAML.stringify({
+            a: 1,
+            b: 2
+        });
+        const jsonFileContent = JSON.stringify({
+            a: 1,
+            b: 2
+        });
+
+        beforeEach(() => {
+            files.forEach(file => {
+                if (file.match(/\.yml$|yaml$/)) {
+                    fs.writeFileSync(file, ymlFileContent);
+
+                    return;
+                }
+
+                if (file.match(/\.json$/)) {
+                    fs.writeFileSync(file, jsonFileContent);
+
+                    return;
+                }
+
+                if (file.match(/\.js$/)) {
+                    fs.writeFileSync(file, `module.exports = ${jsonFileContent}`);
+
+                    return;
+                }
+
+                fs.writeFileSync(file, jsonFileContent);
+            });
+        });
+
+        it('Should return false', () => {
+            assert.isNotOk(utils.requireConfig('this/does/not/.exist.json'), 'Invalid path');
+        });
+
+        it('Should return the Object from any of the supported files', () => {
+            files.forEach(file => {
+                assert.deepEqual(JSON.stringify(utils.requireConfig(file)), jsonFileContent, `Using ${file}`);
+            });
+        });
+
+        afterEach(() => {
+            files.forEach(file => fs.unlinkSync(file));
+        });
+    });
+
+    describe('getConfigFromFile', () => {
+        const filename = process.cwd() + '/test/.temp/.grenrc';
+        const fileContent = {
+            a: 1,
+            b: 2
+        };
+
+        beforeEach(() => {
+            fs.writeFileSync(filename, JSON.stringify(fileContent));
+        });
+
+        it('Should always return an Object', () => {
+            assert.isOk(typeof utils.getConfigFromFile(process.cwd() + '/test/.temp') === 'object', 'The type is an object');
+            assert.deepEqual(JSON.stringify(utils.getConfigFromFile(process.cwd() + '/test/.temp')), JSON.stringify(fileContent), 'Given the right path');
+            assert.deepEqual(JSON.stringify(utils.getConfigFromFile(process.cwd() + '/test')), JSON.stringify({}), 'Given a path with no config file');
+        });
+
+        afterEach(() => {
+            fs.unlinkSync(filename);
+        });
+    });
+
+    describe('noop', () => {
+        it('Should be a function that returns undefined', () => {
+            assert.deepEqual(utils.noop(), undefined, 'Running the function');
+        });
+    });
 });

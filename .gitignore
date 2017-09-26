@@ -5,6 +5,7 @@ npm-debug.log
 docs/_site
 docs/.sass-cache
 coverage
+test/.temp
 dist
 bin
 test/**.js.xml
