@@ -9,8 +9,7 @@
         "coverage": "nyc --reporter=lcov --reporter=text mocha --compilers=js:babel-register",
         "options": "node tasks/_generate-options.js",
         "examples": "node tasks/_generate-examples.js",
-        "docs": "npm run options && npm run examples && node_modules/.bin/jsdoc -c .jsdoc.conf.json --verbose",
-        "prepublish": "npm run test && gulp build"
+        "docs": "npm run options && npm run examples && node_modules/.bin/jsdoc -c .jsdoc.conf.json --verbose"
     },
     "repository": {
         "type": "git",
